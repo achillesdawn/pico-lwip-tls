@@ -10,14 +10,13 @@ project(lwip_https C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 add_executable(${CMAKE_PROJECT_NAME}
-    lwip_https.c
+    main.c
     tls_client.c
-    
+    dhtlib.c
 )
 
 pico_enable_stdio_usb(${CMAKE_PROJECT_NAME} 1)

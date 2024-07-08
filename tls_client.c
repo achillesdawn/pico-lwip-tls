@@ -191,7 +191,7 @@ static TLS_CLIENT_T *tls_client_init(void) {
     return state;
 }
 
-bool run_tls_client_test(const char *server, const char *request, int timeout) {
+bool run_tls_client(const char *server, const char *request, int timeout) {
 
     /* No CA certificate checking */
     tls_config = altcp_tls_create_config_client(NULL, 0);

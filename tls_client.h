@@ -1,2 +1,2 @@
-bool run_tls_client_test(const char * server, const char * request, int timeout);
+bool run_tls_client(const char * server, const char * request, int timeout);
 #pragma once

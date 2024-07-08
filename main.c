@@ -5,10 +5,12 @@
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
 
+#include "dhtlib.h"
 #include "ssid.h"
 #include "tls_client.h"
 
 const uint8_t YELLOW_LED = 15;
+const uint8_t DHT_PIN = 18;
 
 #define TLS_CLIENT_TIMEOUT_SECS 15
 
@@ -64,9 +66,11 @@ int main() {
     sleep_ms(3000);
     printf("Setting alarms\n");
 
-    gpio_init(YELLOW_LED);
-    gpio_set_dir(YELLOW_LED, true);
+    const uint32_t PIN_MASK = (1 << YELLOW_LED) | (1 << DHT_PIN);
 
+    gpio_init_mask(PIN_MASK);
+    gpio_set_dir_out_masked(PIN_MASK);
+    
     struct repeating_timer led_timer;
     add_repeating_timer_ms(
         500, toggle_led_repeating_callback, NULL, &led_timer
@@ -74,20 +78,32 @@ int main() {
 
     printf("alarms set");
 
-    bool connected = connect_with_retries(3);
-    if (!connected) {
-        printf("CONNECTION FAIL");
-        return 1;
-    }
-
-    char TLS_CLIENT_HTTP_REQUEST[500];
     const char TLS_CLIENT_SERVER[] = "aegan.ntllgma.workers.dev";
 
-    sprintf(
-        TLS_CLIENT_HTTP_REQUEST,
-        "GET / HTTP/1.1\r\nHost:%s\r\nConnection: close\r\n\r\n",
-        TLS_CLIENT_SERVER
-    );
+    while (true) {
 
-    run_tls_client_test(TLS_CLIENT_SERVER, TLS_CLIENT_HTTP_REQUEST, 20);
+        bool connected = connect_with_retries(3);
+
+        if (!connected) {
+            printf("CONNECTION FAIL");
+            sleep_ms(10000);
+            continue;
+        }
+
+        DhtData *data = dht_init_sequence();
+
+        char TLS_CLIENT_HTTP_REQUEST[500];
+
+        sprintf(
+            TLS_CLIENT_HTTP_REQUEST,
+            "GET /insert?humidity=%f&temperature=%f HTTP/1.1\r\n"
+            "Host:%s\r\n"
+            "Connection: close\r\n\r\n",
+            data->humidity,
+            data->temperature,
+            TLS_CLIENT_SERVER
+        );
+
+        run_tls_client(TLS_CLIENT_SERVER, TLS_CLIENT_HTTP_REQUEST, 20);
+    }
 }
