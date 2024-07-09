@@ -70,7 +70,8 @@ int main() {
 
     gpio_init_mask(PIN_MASK);
     gpio_set_dir_out_masked(PIN_MASK);
-    
+    gpio_put_masked(PIN_MASK, true);
+
     struct repeating_timer led_timer;
     add_repeating_timer_ms(
         500, toggle_led_repeating_callback, NULL, &led_timer
@@ -82,28 +83,37 @@ int main() {
 
     while (true) {
 
+        DhtData *data = dht_init_sequence();
+        if (data == NULL) {
+            printf("INIT FAIL, CONTINUE LOOP");
+            sleep_ms(60000);
+            continue;
+        }
+
         bool connected = connect_with_retries(3);
 
         if (!connected) {
             printf("CONNECTION FAIL");
-            sleep_ms(10000);
-            continue;
+        } else {
+            char TLS_CLIENT_HTTP_REQUEST[500];
+
+            sprintf(
+                TLS_CLIENT_HTTP_REQUEST,
+                "GET /insert?humidity=%f&temperature=%f HTTP/1.1\r\n"
+                "Host:%s\r\n"
+                "Connection: close\r\n\r\n",
+                data->humidity,
+                data->temperature,
+                TLS_CLIENT_SERVER
+            );
+
+            printf("\nGETTING:\n%s\n", TLS_CLIENT_HTTP_REQUEST);
+
+            run_tls_client(TLS_CLIENT_SERVER, TLS_CLIENT_HTTP_REQUEST, 20);
+            cyw43_arch_deinit();
         }
 
-        DhtData *data = dht_init_sequence();
-
-        char TLS_CLIENT_HTTP_REQUEST[500];
-
-        sprintf(
-            TLS_CLIENT_HTTP_REQUEST,
-            "GET /insert?humidity=%f&temperature=%f HTTP/1.1\r\n"
-            "Host:%s\r\n"
-            "Connection: close\r\n\r\n",
-            data->humidity,
-            data->temperature,
-            TLS_CLIENT_SERVER
-        );
-
-        run_tls_client(TLS_CLIENT_SERVER, TLS_CLIENT_HTTP_REQUEST, 20);
+        printf("sleeping");
+        sleep_ms(60000);
     }
 }

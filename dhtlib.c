@@ -75,7 +75,7 @@ void gpio_callback(uint gpio, uint32_t event_mask) {
     }
 }
 
-void start_sequence() {
+bool start_sequence() {
     gpio_put(DHT_PIN, false);
     sleep_ms(19);
 
@@ -85,13 +85,15 @@ void start_sequence() {
 
     if (!wait_for_value(0)) {
         printf("Initiation failed");
-        return;
+        return false;
     }
 
     if (!wait_for_value(1)) {
         printf("initialiaziation failed");
-        return;
+        return false;
     }
+
+    return true;
 }
 
 void set_irq(bool enable) {
@@ -111,7 +113,10 @@ DhtData *dht_init_sequence() {
 
     printf("initializing dht sequence\n");
 
-    start_sequence();
+    bool sequece_started = start_sequence();
+    if (!sequece_started) {
+        return NULL;
+    }
 
     set_irq(true);
 
